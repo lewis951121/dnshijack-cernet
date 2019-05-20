@@ -1,0 +1,10 @@
+baidu.com
+qq.com
+tmall.com
+taobao.com
+sohu.com
+jd.com
+sina.com.cn
+weibo.com
+360.cn
+login.tmall.com

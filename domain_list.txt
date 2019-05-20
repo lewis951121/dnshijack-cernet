@@ -1,0 +1,10 @@
+baidu.com,CN top10
+qq.com,CN top10
+tmall.com,CN top10
+taobao.com,CN top10
+sohu.com,CN top10
+jd.com,CN top10
+sina.com.cn,CN top10
+weibo.com,CN top10
+360.cn,CN top10
+login.tmall.com,CN top10
