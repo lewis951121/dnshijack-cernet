@@ -9,6 +9,8 @@ from dns import resolver
 from dns.exception import DNSException
 
 import argparse
+from tqdm import tqdm
+
 parser = argparse.ArgumentParser(description="DNS Hijacking detection program.")
 
 reader = geoip2.database.Reader("GeoLite2-City.mmdb")
@@ -432,7 +434,7 @@ def threadFunc(num1, num2, num):
         outputf.close()
 
 DEBUGGING = True
-write_normal = False
+write_normal = True
 MAX_THREADS = 100
 
 def main():
@@ -482,17 +484,19 @@ def main():
         num = MAX_THREADS
 
     print("Begin resolver check.")
-    for i in range(0, len(dnslist)):
+    # TODO: change to multi-thread.
+    # for i in range(0, len(dnslist))
+    for i in tqdm(range(0, len(dnslist))):
         ip = dnslist[i].decode()
-        asn, isp = getas(ip)
-        country, region = geoip_query(ip)
         # check if this resolver is still alive, by resolving "thunisl.com"
         flag, result_thunisl = ifresolverok(ip)
         if flag:
             # it works! record the resolver.
+            asn, isp = getas(ip)
+            country, region = geoip_query(ip)
             dnsdict[ip] = [asn, isp, country, region]
-        else:
-            dnsdict[ip] = ""
+        # else:
+            # dnsdict[ip] = ""
     if DEBUGGING:
         print("===> Resolver check done. ", len(dnsdict), "resolvers alive.")
 
