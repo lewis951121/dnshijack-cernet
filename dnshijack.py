@@ -46,9 +46,8 @@ def geoip_query(ip):
         region = response.subdivisions.most_specific.name
         return country, region
     except Exception as e:
-        print(ip, e)
+        print("[geo]", ip, e)
         return "", ""
-    return "", ""
 
 # check if a resolver IP is still alive.
 def ifresolverok(ip):
@@ -64,7 +63,7 @@ def ifresolverok(ip):
         else:
             return False, str(resultlist)
     except Exception as e:
-        print("")
+        print("[resolver check]", e)
     return False, ""
 
 # check the ground results of one domain.
@@ -82,7 +81,7 @@ def checkdomainresolved(domain):
             temp = [a.address for a in ans.rrset.items]
             resultlist.append(temp)
         except Exception as e:
-            print(domain, e)
+            print("[ground resolution]", domain, e)
             resultlist.append([])
     resultset = set(resultlist[0]) | set(resultlist[1]) | set(resultlist[2]) | set(resultlist[3])
     resultlist = list(resultset)
@@ -107,9 +106,9 @@ def domainresolver(ip, domain):
         failtype = "Timeout"
     except resolver.NoNameservers:
         failtype = "NoNameservers"
-    except DNSException as e:
-        failtype = "others"
-        print(ip, domain, e)
+    except Exception as e:
+        failtype = "DNS query failure"
+        print("[test resolution]", ip, domain, e)
     return resultlist, failtype
 
 # get (hashed) HTTP webpage of a batch of IPs.
@@ -123,7 +122,7 @@ def gethttpcontent(iplist):
             hashvalue = crypt.crypt(a, salt)
             resultlist.append(hashvalue)
         except Exception as e:
-            print("wrong during gethttpcontent", e)
+            print("[HTTP]", e)
     return list(set(resultlist))
 
 # get the certificates on port 443 of a list of IPs.
@@ -145,7 +144,7 @@ def getcert(iplist):
             try:
                 fid.write("-----BEGIN CERTIFICATE-----" + blist[1] + "-----END CERTIFICATE-----")
             except Exception as e:
-                print(ipstr, e)
+                print("[cert]", ipstr, e)
         cmd2 = "openssl x509 -text -in test.pem"
         try:
             p2 = os.popen(cmd2)
@@ -154,7 +153,7 @@ def getcert(iplist):
             resultlist.append(hashvalue)
             textlist = text.split("\n")
         except Exception as e:
-            print(ipstr, e)
+            print("[cert2]", ipstr, e)
         issuer = ""
         subject = ""
         notafter = ""
@@ -184,14 +183,14 @@ def getcert_SNI(iplist, domain):
             try:
                 fid.write("-----BEGIN CERTIFICATE-----"+blist[1]+"-----END CERTIFICATE-----")
             except Exception as e:
-                print(ipstr,e)
+                print("[cert_sni]", ipstr,e)
         cmd2="openssl x509 -text -in test.pem"
         try:
             p2=os.popen(cmd2)
             text=p2.read()
             hashvalue=crypt.crypt(text,salt)
         except Exception as e:
-            print(ip,e)
+            print("[cert_sni2]", ip,e)
         resultlist.append(hashvalue)
         textlist=text.split("\n")
         issuer=""
@@ -253,9 +252,9 @@ def getcdn(iplist):
             hostname = ans.rrset[0].target.to_text(True)
             resultlist.append(hostname)
         except DNSException as e:
-            print(e)
+            print("[cdn]", e)
         except Exception as e:
-            print(e)
+            print("[cdn]", e)
     return resultlist
 
 
@@ -276,7 +275,9 @@ def threadFunc(num1, num2, num):
             print("===> Output file created:", filename)
 
     # for each domain in the thread
-    for i in range(num1, num2):
+    # for i in range(num1, num2):
+    # for all domains in the list
+    for i in range(0, len(domainlist)):
         domaincsv = domainlist[i].decode()
         domain = domaincsv.split(',')[0]
         if DEBUGGING:
@@ -289,7 +290,8 @@ def threadFunc(num1, num2, num):
             print("===> Ground resolution result:", ground_ip)
         if ifdomainresolved:
             # ground resolution successful.
-            for j in range(0, len(dnslist)):
+            # for j in range(0, len(dnslist)):
+            for j in range(num1, num2):
                 ip = dnslist[j].decode()
                 if ip in dnsdict:
                     sameip = False
@@ -306,13 +308,38 @@ def threadFunc(num1, num2, num):
                         print("Testing resolver:", ip)
                     ground_asn, ground_isp = getaslist(ground_ip)       # get ground stats
                     response_ip, fail_type = domainresolver(ip, domain)  # get test results
+                    # preprocess the response. is it empty or encounter errors?
+                    if len(response_ip) == 0:
+                        # empty response.
+                        Comment = "Empty response"
+                        try:
+                            outputf.write(ip + "\t" + dnsdict[ip][0] + "\t" + dnsdict[ip][1] + "\t" + dnsdict[ip][2]
+                                      + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(ground_asn) +
+                                      "\t" + str(response_ip) + "\t[]" +
+                                      "\tFalse\t" + Comment + "\n")
+                        except Exception as e:
+                            print("[write1]", ip, domain, e)
+                        continue
+                    elif fail_type != "":
+                        # other failures.
+                        Comment = fail_type
+                        try:
+                            outputf.write(ip + "\t" + dnsdict[ip][0] + "\t" + dnsdict[ip][1] + "\t" + dnsdict[ip][2]
+                                      + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(ground_asn) +
+                                      "\t" + str(response_ip) + "\t[]" +
+                                      "\tFalse\t" + Comment + "\n")
+                        except Exception as e:
+                            print("[write2]", ip, domain, e)
+                        continue
+
                     response_asn, response_isp = getaslist(response_ip)  # get the stats of test results
                     if DEBUGGING:
                         print("Testing result:", response_ip)
                     if set(ground_ip) >= set(response_ip):
                         sameip = True       # same IP.
                         Comment = "Same IP"
-                    if set(ground_asn) >= set(response_asn) or set(ground_isp) >= set(response_isp):
+                    if (set(ground_asn) >= set(response_asn) and len(set(response_asn)) > 0) \
+                            or (set(ground_isp) >= set(response_isp) and len(set(response_isp)) > 0):
                         sameas = True       # same ASN.
                         Comment = "Same ASN"
                     # checkset = set(response_ip) - set(ground_ip)
@@ -343,10 +370,11 @@ def threadFunc(num1, num2, num):
                                     print("===> Same IP/ASN.")
                                 if write_normal:
                                     outputf.write(ip + "\t" + dnsdict[ip][0] + "\t" + dnsdict[ip][1] + "\t" + dnsdict[ip][2]
-                                                   + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(response_ip) +
-                                                  "\tTrue\t" + Comment + "\n")
+                                                   + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(ground_asn) +
+                                                   "\t" + str(response_ip) + "\t" + str(response_asn) +
+                                                   "\tTrue\t" + Comment + "\n")
                             except Exception as e:
-                                print(ip, domain, e)
+                                print("[write3]", ip, domain, e)
                             continue
 
                     # otherwise, response does not agree with ground.
@@ -355,7 +383,7 @@ def threadFunc(num1, num2, num):
                     response_httpcontent = gethttpcontent(response_ip)
                     if DEBUGGING:
                         print("Got HTTP.")
-                    if set(ground_httpcontent) >= set(response_httpcontent):
+                    if set(ground_httpcontent) >= set(response_httpcontent) and len(response_httpcontent) > 0:
                         samehttp = True
                         Comment = "Same HTTP"
                         if DEBUGGING:
@@ -367,9 +395,9 @@ def threadFunc(num1, num2, num):
                         response_cert, response_subject = getcert(response_ip)
                         if DEBUGGING:
                             print("Got cert.")
-                        if set(ground_cert) >= set(response_cert):
+                        if set(ground_cert) >= set(response_cert) and len(response_cert) > 0:
                             samecert = True
-                            Comment = "Same Certificate"
+                            Comment = "Same Cert"
                             if DEBUGGING:
                                 print("===> Same cert.")
                         if not samecert:
@@ -378,9 +406,9 @@ def threadFunc(num1, num2, num):
                             response_cert_SNI, response_subject_SNI = getcert_SNI(response_ip, domain)
                             if DEBUGGING:
                                 print("Got cert with SNI.")
-                            if set(ground_cert_SNI) >= set(response_cert_SNI):
+                            if set(ground_cert_SNI) >= set(response_cert_SNI) and len(response_cert_SNI) > 0:
                                 samecert_withSNI = True
-                                Comment = "Same Certificate (with SNI)"
+                                Comment = "Same Cert (with SNI)"
                                 if DEBUGGING:
                                     print("===> Same cert with SNI.")
                             if not samecert_withSNI:
@@ -389,12 +417,13 @@ def threadFunc(num1, num2, num):
                                 response_CDN = getcdn(response_ip)
                                 if DEBUGGING:
                                     print("Got CDN.")
-                                if set(ground_CDN) >= set(response_CDN) or set(ground_asn) >= set(response_CDN) \
-                                        or set(ground_subject) >= set(response_CDN) or set(ground_subject_SNI) >= set(response_CDN):
-                                    sameCDN = True
-                                    Comment = "Same CDN"
-                                    if DEBUGGING:
-                                        print("===> Same CDN.")
+                                if len(response_CDN) > 0:
+                                    if set(ground_CDN) >= set(response_CDN) or set(ground_asn) >= set(response_CDN) \
+                                            or set(ground_subject) >= set(response_CDN) or set(ground_subject_SNI) >= set(response_CDN):
+                                        sameCDN = True
+                                        Comment = "Same CDN"
+                                        if DEBUGGING:
+                                            print("===> Same CDN.")
                             '''
                             # check if the cert is valid.
                                 correctcert = checkcert(response_ip)
@@ -432,6 +461,20 @@ def threadFunc(num1, num2, num):
         connection.close()
     else:
         outputf.close()
+
+
+# check if resovler is still alive (one thread).
+def check_resolver_alive(num1, num2):
+    for i in range(num1, num2):
+        ip = dnslist[i].decode()
+        # check if this resolver is still alive, by resolving "thunisl.com"
+        flag, result_thunisl = ifresolverok(ip)
+        if flag:
+            # it works! record the resolver.
+            asn, isp = getas(ip)
+            country, region = geoip_query(ip)
+            dnsdict[ip] = [asn, isp, country, region]
+
 
 DEBUGGING = True
 write_normal = True
@@ -479,31 +522,32 @@ def main():
 
 
     # determine number of threads.
-    num = int(len(domainlist) * len(dnslist) / 100) + 1
+    num = int(len(domainlist) * len(dnslist) / 20) + 1
     if num > MAX_THREADS:
         num = MAX_THREADS
 
     print("Begin resolver check.")
-    # TODO: change to multi-thread.
     # for i in range(0, len(dnslist))
-    for i in tqdm(range(0, len(dnslist))):
-        ip = dnslist[i].decode()
-        # check if this resolver is still alive, by resolving "thunisl.com"
-        flag, result_thunisl = ifresolverok(ip)
-        if flag:
-            # it works! record the resolver.
-            asn, isp = getas(ip)
-            country, region = geoip_query(ip)
-            dnsdict[ip] = [asn, isp, country, region]
-        # else:
-            # dnsdict[ip] = ""
+    threads_resolver_check = []
+    if int(len(dnslist) / 50) > MAX_THREADS:
+        num_tmp = MAX_THREADS
+    else:
+        num_tmp = int(len(dnslist) / 50) + 1
+    for i in range(0, num_tmp):
+        threads_resolver_check.append(threading.Thread(target=check_resolver_alive, args=(int(i * len(dnslist) / num_tmp),
+                                                                                          int((i + 1) * len(dnslist) / num_tmp), )))
+    for t in threads_resolver_check:
+        t.start()
+    for t in threads_resolver_check:
+        t.join()
+
     if DEBUGGING:
         print("===> Resolver check done. ", len(dnsdict), "resolvers alive.")
 
     threads = []
     # start probing each resolver alive with the test domains.
     for i in range(0, num):
-        threads.append(threading.Thread(target=threadFunc, args=(int(i * len(domainlist) / num), int((i + 1) * len(domainlist) / num), i,)))
+        threads.append(threading.Thread(target=threadFunc, args=(int(i * len(dnslist) / num), int((i + 1) * len(dnslist) / num), i,)))
     for t in threads:
         t.start()
     for t in threads:
