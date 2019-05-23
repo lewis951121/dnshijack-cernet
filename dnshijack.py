@@ -313,10 +313,11 @@ def threadFunc(num1, num2, num):
                         # empty response.
                         Comment = "Empty response"
                         try:
-                            outputf.write(ip + "\t" + dnsdict[ip][0] + "\t" + dnsdict[ip][1] + "\t" + dnsdict[ip][2]
-                                      + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(ground_asn) +
-                                      "\t" + str(response_ip) + "\t[]" +
-                                      "\tFalse\t" + Comment + "\n")
+                            if write_empty:
+                                outputf.write(ip + "\t" + dnsdict[ip][0] + "\t" + dnsdict[ip][1] + "\t" + dnsdict[ip][2]
+                                          + "\t" + domain + "\t" + str(ground_ip) + "\t" + str(ground_asn) +
+                                          "\t" + str(response_ip) + "\t[]" +
+                                          "\tFalse\t" + Comment + "\n")
                         except Exception as e:
                             print("[write1]", ip, domain, e)
                         continue
@@ -478,6 +479,7 @@ def check_resolver_alive(num1, num2):
 
 DEBUGGING = True
 write_normal = True
+write_empty = False
 MAX_THREADS = 100
 
 def main():
@@ -509,14 +511,15 @@ def main():
         # domain_list_file = sys.argv[2]
         domainlist = np.genfromtxt(domain_list_file, delimiter="\n", dtype="S")
     except:
-        # this file does not exist. try taking it as domain name.
+        # this file does not exist. try take domain name.
         try:
             domainlist = np.array([single_domain], dtype="S")
-            write_normal = True
-        except:
+            # sample from resolver list.
+            np.random.shuffle(dnslist)
+            dnslist = dnslist[:resolver_count]
+        except Exception as e:
             print("Domain file ERROR.")
             exit(2)
-            # TODO: sample from resolver list.
     if DEBUGGING:
         print("===> Loaded domain file. ", len(domainlist), "domains in total.")
 
