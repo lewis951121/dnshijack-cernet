@@ -190,7 +190,7 @@ def getcert_SNI(iplist, domain):
             text=p2.read()
             hashvalue=crypt.crypt(text,salt)
         except Exception as e:
-            print("[cert_sni2]", ip,e)
+            print("[cert_sni2]", ipstr,e)
         resultlist.append(hashvalue)
         textlist=text.split("\n")
         issuer=""
@@ -413,25 +413,24 @@ def threadFunc(num1, num2, num):
                                 if DEBUGGING:
                                     print("===> Same cert with SNI.")
                             if not samecert_withSNI:
-                                # check if the SDNs of ground and test results belong to the same CDN.
-                                ground_CDN = getcdn(ground_ip)
-                                response_CDN = getcdn(response_ip)
-                                if DEBUGGING:
-                                    print("Got CDN.")
-                                if len(response_CDN) > 0:
-                                    if set(ground_CDN) >= set(response_CDN) or set(ground_asn) >= set(response_CDN) \
-                                            or set(ground_subject) >= set(response_CDN) or set(ground_subject_SNI) >= set(response_CDN):
-                                        sameCDN = True
-                                        Comment = "Same CDN"
-                                        if DEBUGGING:
-                                            print("===> Same CDN.")
-                            '''
-                            # check if the cert is valid.
-                                correctcert = checkcert(response_ip)
+                                # check if the cert is valid.
+                                # correctcert = checkcert(response_ip)
                                 correctcert_withSNI = checkcert_SNI(response_ip, domain)
                                 if DEBUGGING:
                                     print("Cert validated.")
-                            '''
+                                if not correctcert_withSNI:
+                                    # check if the SDNs of ground and test results belong to the same CDN.
+                                    ground_CDN = getcdn(ground_ip)
+                                    response_CDN = getcdn(response_ip)
+                                    if DEBUGGING:
+                                        print("Got CDN.")
+                                    if len(response_CDN) > 0:
+                                        if set(ground_CDN) >= set(response_CDN) or set(ground_asn) >= set(response_CDN) \
+                                                or set(ground_subject) >= set(response_CDN) or set(ground_subject_SNI) >= set(response_CDN):
+                                            sameCDN = True
+                                            Comment = "Same CDN"
+                                            if DEBUGGING:
+                                                print("===> Same CDN.")
 
                     if SQL:
                         # insert the result into database.
