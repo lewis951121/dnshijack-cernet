@@ -68,8 +68,10 @@ def ifresolverok(ip):
 
 # check the ground results of one domain.
 def checkdomainresolved(domain):
-    # TODO: add v6 resolvers.
-    ground_resolver = ["8.8.8.8", "8.8.4.4", "140.82.36.158", "47.88.213.154"]
+    if use_v6:
+        ground_resolver = ["2606:4700:4700::1111", "2606:4700:4700::1001", "2620:fe::fe", "2620:fe::9"]
+    else:
+        ground_resolver = ["8.8.8.8", "8.8.4.4", "140.82.36.158", "47.88.213.154"]
     resultlist = []
     for item in ground_resolver:
         tmp = resolver.Resolver()
@@ -479,22 +481,25 @@ def check_resolver_alive(num1, num2):
 DEBUGGING = True
 write_normal = True
 write_empty = False
+use_v6 = False
 MAX_THREADS = 100
 
 def main():
-    global dnslist, domainlist, dnsdict, write_normal
+    global dnslist, domainlist, dnsdict, write_normal, use_v6
     dnsdict = {}
 
     # parse the parameters: resolver list & domain list / domain.
-    parser.add_argument("resolver_file", action="store", default=None)
-    parser.add_argument("-domain_list", action="store", default=None)
-    parser.add_argument("-domain", action="store", default=None)
-    parser.add_argument("-resolver_count", action="store", type=int, default=10)
+    parser.add_argument("resolver_list", action="store", default=None, help="resolver list file")
+    parser.add_argument("-l", action="store", default=None, help="domain list file", dest="domain_list")
+    parser.add_argument("-d", action="store", default=None, help="single test domain", dest="domain")
+    parser.add_argument("-c", action="store", type=int, default=10, help="count of sampled resolvers", dest="resolver_count")
+    parser.add_argument("-6", action="store_true", default=False, dest="v6")
     results = parser.parse_args()
-    resolver_list_file = results.resolver_file
+    resolver_list_file = results.resolver_list
     domain_list_file = results.domain_list
     single_domain = results.domain
     resolver_count = results.resolver_count
+    use_v6 = results.v6
 
     try:
         # read resolver list from file.
