@@ -550,6 +550,11 @@ def main():
 
     if DEBUGGING:
         print("===> Resolver check done. ", len(dnsdict), "resolvers alive.")
+    # if there's no resolver alive, terminate.
+    if len(dnsdict) == 0:
+        if DEBUGGING:
+            print("No resolver alive. Terminate.")
+        exit(0)
 
     threads = []
     # start probing each resolver alive with the test domains.
