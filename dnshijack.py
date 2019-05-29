@@ -215,7 +215,7 @@ def checkcert(iplist):
         text_stdout=p.stdout.read().decode()
         alist=text_stdout.split("\n")
         comment,hashvalue="",""
-        for i in range(0,len(alist))[::-1]:
+        for i in range(0, len(alist))[::-1]:
             if(alist[i].strip().startswith("Verify return code:")):
                 templist=re.split(r":|\(",alist[i])
                 comment=templist[2]
@@ -233,7 +233,7 @@ def checkcert_SNI(iplist,domain):
         text_stdout=p.stdout.read().decode()
         alist=text_stdout.split("\n")
         comment,hashvalue="",""
-        for i in range(0,len(alist))[::-1]:
+        for i in range(0, len(alist))[::-1]:
             if(alist[i].strip().startswith("Verify return code:")):
                 templist=re.split(r":|\(",alist[i])
                 comment=templist[2]
@@ -504,12 +504,15 @@ def main():
     try:
         # read resolver list from file.
         # resolver_list_file = sys.argv[1]
-        dnslist = np.genfromtxt(resolver_list_file, delimiter="\n", dtype="S16")
+        dnslist = np.genfromtxt(resolver_list_file, delimiter="\n", dtype="S")
     except:
         print("Resolver file ERROR.")
         exit(1)
     if DEBUGGING:
         print("===> Loaded resolver file. ", len(dnslist), "resolvers in total.")
+
+    if resolver_count > len(dnslist):
+        resolver_count = len(dnslist)
 
     try:
         # domain_list_file = sys.argv[2]
