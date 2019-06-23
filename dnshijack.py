@@ -261,7 +261,7 @@ def getcdn(iplist):
 
 
 # main function of each thread.
-def threadFunc(num1, num2, num):
+def threadFunc(num1, num2, num, ts):
     if SQL:
         # connect to the mysql database.
         config = {'host': '202.112.51.179', 'port': 3306, 'user': 'root', 'password': 'thunisl', 'db': 'opendns_bak', 'charset': 'utf8'}
@@ -270,7 +270,7 @@ def threadFunc(num1, num2, num):
         cur = connection.cursor()
     else:
         # create output file.
-        ts = time.time()
+        # ts = time.time()
         filename = str(int(ts)) + "_" + str(num) + ".txt"
         outputf = open(filename, "a+")
         if DEBUGGING:
@@ -484,7 +484,7 @@ write_empty = False
 use_v6 = False
 MAX_THREADS = 100
 
-def main():
+def main(ts):
     global dnslist, domainlist, dnsdict, write_normal, use_v6
     dnsdict = {}
 
@@ -562,11 +562,16 @@ def main():
     threads = []
     # start probing each resolver alive with the test domains.
     for i in range(0, num):
-        threads.append(threading.Thread(target=threadFunc, args=(int(i * len(dnslist) / num), int((i + 1) * len(dnslist) / num), i,)))
+        threads.append(threading.Thread(target=threadFunc, args=(int(i * len(dnslist) / num), int((i + 1) * len(dnslist) / num), i, ts, )))
     for t in threads:
         t.start()
     for t in threads:
         t.join()
 
 if __name__ == "__main__":
-    main()
+    ts = time.time()
+    main(ts)
+    # convert intermediate results into json.
+    time.sleep(1)
+    os.system("pytyon3.6 edit.py " + ts + " " + str(use_v6))
+    # edit(ts)
