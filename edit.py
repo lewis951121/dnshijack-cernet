@@ -12,7 +12,7 @@ if v6 == "True":
     outputf = open("v6_abnormal_resover_list.json", "w")
     key = "abnormal_v6_resolver_list"
 else:
-    os.system("grep False " + ts + "* > result_data/abnormal.v4." + ts + ".txt")
+    os.system("cat " + ts + "* | grep False > result_data/abnormal.v4." + ts + ".txt")
     inputf = open("result_data/abnormal.v4." + ts + ".txt")
     outputf = open("v4_abnormal_resover_list.json", "w")
     key = "abnormal_v4_resolver_list"
