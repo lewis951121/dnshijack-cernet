@@ -573,5 +573,5 @@ if __name__ == "__main__":
     main(ts)
     # convert intermediate results into json.
     time.sleep(1)
-    os.system("python3.6 edit.py " + ts + " " + str(use_v6))
+    os.system("python3.6 edit.py " + str(int(ts)) + " " + str(use_v6))
     # edit(ts)

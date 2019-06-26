@@ -1,5 +1,5 @@
 # convert txt files into json files. collect and merge the history temp files.
-import sys, os, json
+import sys, os, json, time
 
 ts = sys.argv[1]
 v6 = sys.argv[2]
@@ -49,5 +49,8 @@ for line in inputf:
 
 outjson[key] = resolver_list
 json.dump(outjson, outputf, indent=4)
+outputf.close()
 
+time.sleep(1)
+# os.system("chown nginx *abnormal*json")
 os.system("cp *abnormal*json /usr/share/nginx/html/openinfo/data")
